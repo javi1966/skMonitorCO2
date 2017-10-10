@@ -1,5 +1,6 @@
 #include <ESP8266WiFi.h>
-
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 
 /*MQ-7 normal air output  150
@@ -19,24 +20,28 @@
 */
 
 
-#define ALTAVOZ     D3
-#define LED         D2
-#define DO_MQ7      D3
-#define ANALOGPIN   A0
+#define ALTAVOZ      D3
+#define LED          D2
+
+#define ANALOGPIN    A0
+#define ONE_WIRE_BUS D4
 
 const char ssid[]     = "Wireless-N";
 const char password[] = "z123456z";
 const char* host = "api.thingspeak.com";
 String writeAPIKey = "5HN547LGT51ENDP6";
 
-const int timerUpdate = 60 * 5; //5 minutos
+const int timerUpdate = 60 * 3; //5 minutos
 const byte interruptPin = 13;
 int sensorMQ7 = 0;
 bool bActualiza = true;
 bool bAlarma = false;
+float Temperatura=0;
 
 
 WiFiClient client;
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
 
 //*********************************************************************************
 void aviso() {
@@ -102,13 +107,16 @@ void setup() {
 
   //primera lectura
   sensorMQ7 = analogRead(ANALOGPIN);
+  sensors.requestTemperatures();
+  Temperatura=sensors.getTempCByIndex(0);
 
   if (client.connect(host, 80)) {
 
     // Construct API request body
     String body = "field1=";
     body +=  String(sensorMQ7);
-
+    body +="&field2=";
+    body +=  String(Temperatura);
     Serial.println(body);
 
     client.print("POST /update HTTP/1.1\n");
@@ -143,8 +151,12 @@ void loop() {
 
 
     sensorMQ7 = analogRead(ANALOGPIN);
+    sensors.requestTemperatures();
+    Temperatura=sensors.getTempCByIndex(0);
     Serial.print("MQ7: ");
     Serial.println(sensorMQ7);
+    Serial.print("T: ");
+    Serial.println(Temperatura);
 
     digitalWrite(LED, LOW); //flashing led
     delay(500);
@@ -153,8 +165,10 @@ void loop() {
     if (client.connect(host, 80)) {
 
       // Construct API request body
-      String body = "field1=";
-      body +=  String(sensorMQ7);
+       String body = "field1=";
+              body +=  String(sensorMQ7);
+              body +="&field2=";
+              body +=  String(Temperatura);
 
       Serial.println(body);
 
