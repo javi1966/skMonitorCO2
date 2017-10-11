@@ -20,11 +20,11 @@
 */
 
 
-#define ALTAVOZ      D3
+#define ALTAVOZ      D1
 #define LED          D2
-
+#define DO_MQ7       D7
 #define ANALOGPIN    A0
-#define ONE_WIRE_BUS D4
+#define ONE_WIRE_BUS D3
 
 const char ssid[]     = "Wireless-N";
 const char password[] = "z123456z";
@@ -69,15 +69,15 @@ void setup() {
   timer0_write(ESP.getCycleCount() + 80000000L); // 80MHz == 1sec
   interrupts();
 
-  pinMode(interruptPin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(interruptPin), handleInterrupt, FALLING);
+  //pinMode(interruptPin, INPUT_PULLUP);
+  //attachInterrupt(digitalPinToInterrupt(interruptPin), handleInterrupt, FALLING);
 
   delay(100);
   Serial.println(" ");
   Serial.println("Iniciando ...");
 
   pinMode(ANALOGPIN, INPUT);
-  // pinMode(DO_MQ7, INPUT);
+  pinMode(DO_MQ7, INPUT);
   pinMode(LED, OUTPUT);
   pinMode(ALTAVOZ, OUTPUT);
 
@@ -140,11 +140,16 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  if (bAlarma) {
+  if(!digitalRead(DO_MQ7)){                   //pooling 
+    Serial.println("Alarma Butano");
+    aviso();
+  }
+
+ /* if (bAlarma) {
     Serial.println("Alarma Butano");
     aviso();
     bAlarma = false;
-  }
+  }*/
 
 
   if (bActualiza) {
