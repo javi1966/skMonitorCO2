@@ -26,8 +26,10 @@
 #define ANALOGPIN    A0
 #define ONE_WIRE_BUS D3
 
-const char ssid[]     = "Wireless-N";
-const char password[] = "z123456z";
+//const char ssid[]     = "Wireless-N";
+//const char password[] = "z123456z";
+const char ssid[] = "WLAN_BF";             //  your network SSID (name)
+const char password[] = "Z404A03CF9CBF";
 const char* host = "api.thingspeak.com";
 String writeAPIKey = "5HN547LGT51ENDP6";
 
@@ -36,7 +38,7 @@ const byte interruptPin = 13;
 int sensorMQ7 = 0;
 bool bActualiza = true;
 bool bAlarma = false;
-float Temperatura=0;
+float Temperatura = 0;
 
 
 WiFiClient client;
@@ -46,10 +48,12 @@ DallasTemperature sensors(&oneWire);
 //*********************************************************************************
 void aviso() {
   for (int i = 0; i < 10; i++) { //run loop for all values of i 0 to __
-    tone(ALTAVOZ, 600); //play tones in order from the frequency array
-    delay(500);   //play all above tones for the corresponding duration in the duration array
-    tone(ALTAVOZ, 300);
-    delay(500);   //play all above tones for the corresponding duration in the duration array
+    tone(ALTAVOZ, 800); //play tones in order from the frequency array
+    delay(200);   //play all above tones for the corresponding duration in the duration array
+    tone(ALTAVOZ, 1000);
+    delay(200);   //play all above tones for the corresponding duration in the duration array
+    tone(ALTAVOZ, 1500);
+    delay(200);   //play all above tones for the corresponding duration in the duration array
     noTone(ALTAVOZ);   //turn off speaker for 30ms before looping back to the next note
     delay(10);
   }
@@ -61,8 +65,10 @@ void setup() {
   // put your setup code here, to run once:
 
   Serial.begin(115200);
-  delay(500);
-  
+  pinMode(LED, OUTPUT);
+  digitalWrite(LED, LOW);
+  delay(1000);
+
   noInterrupts();
   timer0_isr_init();
   timer0_attachInterrupt(TimingISR);
@@ -72,17 +78,20 @@ void setup() {
   //pinMode(interruptPin, INPUT_PULLUP);
   //attachInterrupt(digitalPinToInterrupt(interruptPin), handleInterrupt, FALLING);
 
-  delay(100);
+
   Serial.println(" ");
   Serial.println("Iniciando ...");
 
   pinMode(ANALOGPIN, INPUT);
   pinMode(DO_MQ7, INPUT);
-  pinMode(LED, OUTPUT);
+  //pinMode(LED, OUTPUT);
   pinMode(ALTAVOZ, OUTPUT);
 
-  digitalWrite(LED, HIGH);
+  digitalWrite(LED, LOW);
   digitalWrite(ALTAVOZ, LOW);
+
+  //delay(1000);
+  digitalWrite(LED, HIGH);
 
   //Conexion WIFI
   WiFi.begin(ssid, password);
@@ -108,14 +117,14 @@ void setup() {
   //primera lectura
   sensorMQ7 = analogRead(ANALOGPIN);
   sensors.requestTemperatures();
-  Temperatura=sensors.getTempCByIndex(0);
+  Temperatura = sensors.getTempCByIndex(0);
 
   if (client.connect(host, 80)) {
 
     // Construct API request body
     String body = "field1=";
     body +=  String(sensorMQ7);
-    body +="&field2=";
+    body += "&field2=";
     body +=  String(Temperatura);
     Serial.println(body);
 
@@ -140,16 +149,16 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  if(!digitalRead(DO_MQ7)){                   //pooling 
+  if (!digitalRead(DO_MQ7)) {                 //pooling
     Serial.println("Alarma Butano");
     aviso();
   }
 
- /* if (bAlarma) {
-    Serial.println("Alarma Butano");
-    aviso();
-    bAlarma = false;
-  }*/
+  /* if (bAlarma) {
+     Serial.println("Alarma Butano");
+     aviso();
+     bAlarma = false;
+    }*/
 
 
   if (bActualiza) {
@@ -157,7 +166,7 @@ void loop() {
 
     sensorMQ7 = analogRead(ANALOGPIN);
     sensors.requestTemperatures();
-    Temperatura=sensors.getTempCByIndex(0);
+    Temperatura = sensors.getTempCByIndex(0);
     Serial.print("MQ7: ");
     Serial.println(sensorMQ7);
     Serial.print("T: ");
@@ -170,10 +179,10 @@ void loop() {
     if (client.connect(host, 80)) {
 
       // Construct API request body
-       String body = "field1=";
-              body +=  String(sensorMQ7);
-              body +="&field2=";
-              body +=  String(Temperatura);
+      String body = "field1=";
+      body +=  String(sensorMQ7);
+      body += "&field2=";
+      body +=  String(Temperatura);
 
       Serial.println(body);
 
