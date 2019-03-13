@@ -1,4 +1,5 @@
 #include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
@@ -26,10 +27,10 @@
 #define ANALOGPIN    A0
 #define ONE_WIRE_BUS D3
 
-//const char ssid[]     = "Wireless-N";
-//const char password[] = "z123456z";
-const char ssid[] = "WLAN_BF";             //  your network SSID (name)
-const char password[] = "Z404A03CF9CBF";
+const char ssid[]     = "Wireless-N";
+const char password[] = "z123456z";
+//const char ssid[] = "MOVISTAR_B855";             //  your network SSID (name)
+//const char password[] = "AD2890A7F423CBF3BB79";
 const char* host = "api.thingspeak.com";
 String writeAPIKey = "5HN547LGT51ENDP6";
 
@@ -93,6 +94,9 @@ void setup() {
   //delay(1000);
   digitalWrite(LED, HIGH);
 
+  //Cambio nombre
+  WiFi.hostname("MonitorButano");
+
   //Conexion WIFI
   WiFi.begin(ssid, password);
 
@@ -114,36 +118,12 @@ void setup() {
 
   }
 
-  //primera lectura
-  sensorMQ7 = analogRead(ANALOGPIN);
-  sensors.requestTemperatures();
-  Temperatura = sensors.getTempCByIndex(0);
+  
+  Serial.println(WiFi.localIP());
+  Serial.printf("Chip ID = %08X", ESP.getChipId());
+  Serial.println("");
 
-  if (client.connect(host, 80)) {
-
-    // Construct API request body
-    String body = "field1=";
-    body +=  String(sensorMQ7);
-    body += "&field2=";
-    body +=  String(Temperatura);
-    Serial.println(body);
-
-    client.print("POST /update HTTP/1.1\n");
-    client.print("Host: api.thingspeak.com\n");
-    client.print("Connection: close\n");
-    client.print("X-THINGSPEAKAPIKEY: " + writeAPIKey + "\n");
-    client.print("Content-Type: application/x-www-form-urlencoded\n");
-    client.print("Content-Length: ");
-    client.print(body.length());
-    client.print("\n\n");
-    client.print(body);
-    client.print("\n\n");
-
-  }
-
-  client.stop();
-
-
+  delay(1000);
 }
 
 void loop() {
@@ -165,8 +145,16 @@ void loop() {
 
 
     sensorMQ7 = analogRead(ANALOGPIN);
+
+     if(sensorMQ7 < 0)
+       sensorMQ7=0;
+       
     sensors.requestTemperatures();
     Temperatura = sensors.getTempCByIndex(0);
+
+    if(Temperatura < 0)
+       Temperatura=0;
+       
     Serial.print("MQ7: ");
     Serial.println(sensorMQ7);
     Serial.print("T: ");
@@ -176,33 +164,36 @@ void loop() {
     delay(500);
     digitalWrite(LED, HIGH);
 
-    if (client.connect(host, 80)) {
+     if (WiFi.status() == WL_CONNECTED) {
 
-      // Construct API request body
+      HTTPClient http;
+      
       String body = "field1=";
       body +=  String(sensorMQ7);
       body += "&field2=";
       body +=  String(Temperatura);
 
       Serial.println(body);
+      String field="field1="+String(sensorMQ7);
+      http.begin(host, 80,"https://api.thingspeak.com/update?api_key=V0GX5WB22R9BWOKQ&"+body);
 
-      client.print("POST /update HTTP/1.1\n");
-      client.print("Host: api.thingspeak.com\n");
-      client.print("Connection: close\n");
-      client.print("X-THINGSPEAKAPIKEY: " + writeAPIKey + "\n");
-      client.print("Content-Type: application/x-www-form-urlencoded\n");
-      client.print("Content-Length: ");
-      client.print(body.length());
-      client.print("\n\n");
-      client.print(body);
-      client.print("\n\n");
+       int httpCode = http.GET();
 
-    }
+       if (httpCode == HTTP_CODE_OK) {
 
-    client.stop();
 
+          //String payload = http.getString();
+
+         Serial.print("Resultado: ");
+         Serial.println(http.getString());
+
+       }   
+
+        http.end();
+     }//WL_CONNECTED
+     
     bActualiza = false;
-  }
+  }//bActualiza
 
 }
 //**************************************************************************
