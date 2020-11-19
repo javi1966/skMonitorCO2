@@ -148,17 +148,17 @@ void setup() {
         ppm = 0;
 
 
-      if (ppm < 450) {
+      if (ppm < 650) {
 
         digitalWrite(LED_VERDE, HIGH);
         digitalWrite(LED_ROJO, LOW);
       }
-      else if (  ppm > 450 && ppm < 700 ) {
+      else if (  ppm > 650 && ppm < 800 ) {
         digitalWrite(LED_VERDE, HIGH);
         digitalWrite(LED_ROJO, HIGH);
       }
 
-      else if (  ppm > 700  ) {
+      else if (  ppm > 800  ) {
         digitalWrite(LED_VERDE, LOW);
         digitalWrite(LED_ROJO, HIGH);
       }
@@ -221,17 +221,17 @@ void loop() {
         sensorMQ7 = 0;
 
 
-      if (sensorMQ7 < 450) {
+      if (sensorMQ7 < 650) {
 
         digitalWrite(LED_VERDE, HIGH);
         digitalWrite(LED_ROJO, LOW);
       }
-      else if (  sensorMQ7 > 450 && sensorMQ7 < 700 ) {
+      else if (  sensorMQ7 > 650 && sensorMQ7 < 800 ) {
         digitalWrite(LED_VERDE, HIGH);
         digitalWrite(LED_ROJO, HIGH);
       }
 
-      else if (  sensorMQ7 > 700  ) {
+      else if (  sensorMQ7 > 800  ) {
         digitalWrite(LED_VERDE, LOW);
         digitalWrite(LED_ROJO, HIGH);
       }
