@@ -1,8 +1,13 @@
+/*
+    PROGRAMAR CON LOLIN WEMOS D1 MINI pro
+*/
+
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
+#include <DHT.h>
 #include "MQ135.h"
 
 /*MQ-7 normal air output  150
@@ -27,8 +32,11 @@
 #define DO_MQ7       D7
 #define LED_ROJO     D8
 #define ANALOGPIN    A0
+#define DHTPIN       D6
 
 #define JSON_BUFF_DIMENSION 2500
+
+#define DHTTYPE      DHT11
 
 
 //const char ssid[]     = "Wireless-N";
@@ -38,17 +46,17 @@ const char password[] = "AD2890A7F423CBF3BB79";
 const char* host = "api.thingspeak.com";
 
 
-const int timerUpdate = 60 * 60; //5 minutos
+const int timerUpdate = 30 * 60; //5 minutos
 const byte interruptPin = 13;
 float sensorMQ7 = 0;
 bool bActualiza = true;
 bool bAlarma = false;
-float temperatura=0;
-float humedad=0;
+float temperatura = 0;
+float humedad = 0;
 
 WiFiClient client;
 AsyncWebServer server(80);
-
+DHT dht(DHTPIN, DHTTYPE, 15);
 MQ135 gasSensor = MQ135(ANALOGPIN);
 
 //*********************************************************************************
@@ -102,8 +110,9 @@ void setup() {
   digitalWrite(LED, LOW);
   digitalWrite(ALTAVOZ, LOW);
 
-  //delay(1000);
+  delay(1000);
   digitalWrite(LED, HIGH);
+  dht.begin();
 
   //Cambio nombre
   WiFi.hostname("MonitorCO2");
@@ -113,14 +122,15 @@ void setup() {
   WiFi.config(IPAddress(192, 168, 1, 223), IPAddress(192, 168, 1, 1), IPAddress(255, 255, 255, 0), IPAddress(8, 8, 8, 8));
 
   int timeout = 0;
+  
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print("*");
-
     if (++timeout > 100)
     {
       Serial.println("Sin Conexion WIFI");
-      while (1) {
+      int a = 25;
+      while (a--) {
         digitalWrite(LED, HIGH);
         delay(100);
         digitalWrite(LED, LOW);
@@ -139,33 +149,45 @@ void setup() {
 
   server.on("/nivelco2", HTTP_GET, [](AsyncWebServerRequest * request) {
 
-    float ppm = gasSensor.getCorrectedPPM(temperatura, humedad);
-    Serial.println(ppm);
-
-
-
-     if (ppm < 0)
-        ppm = 0;
-
-
-      if (ppm < 650) {
-
-        digitalWrite(LED_VERDE, HIGH);
-        digitalWrite(LED_ROJO, LOW);
-      }
-      else if (  ppm > 650 && ppm < 800 ) {
-        digitalWrite(LED_VERDE, HIGH);
-        digitalWrite(LED_ROJO, HIGH);
-      }
-
-      else if (  ppm > 800  ) {
-        digitalWrite(LED_VERDE, LOW);
-        digitalWrite(LED_ROJO, HIGH);
-      }
+  /*
+    humedad     = dht.readHumidity();
+    temperatura = dht.readTemperature();
+  
+    Serial.print("Temperatura:");
+    Serial.println(temperatura);
+    Serial.print("Humedad:");
+    Serial.println(humedad);*/
 
     
+
+    float ppm = gasSensor.getCorrectedPPM(temperatura,humedad); //gasSensor.getCorrectedResistance(temperatura, humedad);//getCorrectedPPM(temperatura, humedad);
+    Serial.println(ppm);
+
+    if (ppm < 0)
+      ppm = 0;
+
+    if (ppm < 650) {
+
+      digitalWrite(LED_VERDE, HIGH);
+      digitalWrite(LED_ROJO, LOW);
+    }
+    else if (  ppm > 650 && ppm < 800 ) {
+      digitalWrite(LED_VERDE, HIGH);
+      digitalWrite(LED_ROJO, HIGH);
+    }
+
+    else if (  ppm > 800  ) {
+      digitalWrite(LED_VERDE, LOW);
+      digitalWrite(LED_ROJO, HIGH);
+    }
+
+
     String salJSON = "{\"CO2\":";
     salJSON += String(ppm, 2);
+    salJSON += ",\"humedad\":";
+    salJSON += String(humedad, 2);
+    salJSON += ",\"temperatura\":";
+    salJSON += String(temperatura, 2);
     salJSON += "}";
 
     AsyncWebServerResponse *response = request->beginResponse(200, "text/json", salJSON);
@@ -182,7 +204,6 @@ void setup() {
 
   server.begin();
   Serial.println("HTTP server started");
-
   delay(1000);
 }
 
@@ -194,7 +215,7 @@ void loop() {
   /*if (!digitalRead(DO_MQ7)) {                 //pooling
     Serial.println("Alarma Co2");
     aviso();
-  }*/
+    }*/
 
   /* if (bAlarma) {
      Serial.println("Alarma Butano");
@@ -211,11 +232,18 @@ void loop() {
 
     if (WiFi.status() == WL_CONNECTED) {
 
-      reqOpenweather();
+      //reqOpenweather();
 
-      if(!temperatura ==0)
+      humedad     = dht.readHumidity();
+      temperatura = dht.readTemperature();
 
-         sensorMQ7 = gasSensor.getCorrectedPPM(temperatura, humedad);
+      Serial.print("Temperatura:");
+      Serial.println(temperatura);
+      Serial.print("Humedad:");
+      Serial.println(humedad);
+
+      if (!temperatura == 0 )
+        sensorMQ7 = gasSensor.getCorrectedPPM(temperatura, humedad);
 
       if (sensorMQ7 < 0)
         sensorMQ7 = 0;
@@ -235,8 +263,6 @@ void loop() {
         digitalWrite(LED_VERDE, LOW);
         digitalWrite(LED_ROJO, HIGH);
       }
-
-
 
       Serial.print("MQ7: ");
       Serial.println(sensorMQ7);
